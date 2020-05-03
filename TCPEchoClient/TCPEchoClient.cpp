@@ -76,7 +76,7 @@ int main(int argc, char* argv[])
 
     char buf[nBuf] = {};
     char fhData[nHT] = {'A','B','C','D'};
-    char feData[nHT] = { 'W','X','Y','Z' };
+    char feData[nHT] = {'W','X','Y','Z'}; 
     int count;
     
     
@@ -85,97 +85,103 @@ int main(int argc, char* argv[])
     char cFrame[nBuf] = {};
     char* cDest = cFrame;
     BOOL findhead = 0;
+    int nohead = 0;
+    int head0 = 0;
     int index;
     int imeas = 0;
+    int recvCount = 0;
+    int currentPosition = 0;
 
+
+    printf("transfer begin:\n ");
     while (imeas < 1000) {
-        while (findhead == 0) {
-            count = recv(ConnectSocket, buf, nBuf, 0);
-            index = 0;
-            while (index < nHT)
+        findhead = 0;
+        count = nBuf;
+        currentPosition = 0;
+        while (count > 0 && (recvCount = recv(ConnectSocket, buf + currentPosition, count, 0)) != SOCKET_ERROR)
+        {
+            count -= recvCount;
+            currentPosition += recvCount;
+        }
+
+        //count = recv(ConnectSocket, buf, nBuf, 0);
+        index = 0;
+        while (index <  nBuf)
+        {
+            if (memcmp(&buf[index], &fhData, nHT) == 0)
             {
-                if (memcmp(&buf[index], &fhData, nHT) == 0)
-                {
-                    index += nHT;
-                    findhead = 1;
-                    break;
-                }
-                else
-                {
-                    index++;
-                }
+                findhead = 1;
+                break;
+            } 
+            else
+            {
+                index++;
             }
         }
 
         if (findhead) {
-            memcpy(&cFrame[0], &buf[index], nBuf - index);
-
-            printf("------------------------------------------TIME 1: index = %d \n", index);
-            //for (UINT i = 0; i < nBuf; i++)     // for ect
-            //{
-            //    printf("buf[%d]=", i);
-            //    printf("%X\t\t", buf[i]);
-            //    printf("cFrame[%d]=", i);
-            //    printf("%X\n", cFrame[i]);
-            //}
-            printf("------------------------------------------TIME 1: index = %d \n", index);
-
-            if (index > 4)
+            if (index == 0)
             {
-                count = recv(ConnectSocket, buf, index - 4, 0);
-                memcpy(&cFrame[nBuf - index], buf, index - 4);
-                printf("------------------------------------------TIME 2: index = %d \n", index);
-                for (UINT i = 0; i < nBuf; i++)     // for ect
-                {
-                    printf("buf[%d]=", i);
-                    printf("%X\t\t", buf[i]);
-                    printf("cFrame[%d]=", i);
-                    printf("%X\n", cFrame[i]);
-                }
-                printf("------------------------------------------TIME 2: index = %d \n", index);
-
+                memcpy(&cFrame[0], &buf[index+nHT], nBuf - 2*nHT);
+                head0++;
             }
+            else
+            {   
+                memcpy(&cFrame[0], &buf[index+nHT], nBuf - index-2*nHT);
+                // receive the remaining frame data
+                count = index;
+                currentPosition = 0;
+                while (count > 0 && (recvCount = recv(ConnectSocket, buf + currentPosition, count, 0)) != SOCKET_ERROR)
+                {
+                    count -= recvCount;
+                    currentPosition += recvCount;
+                }
+                //count = recv(ConnectSocket, buf, index,0);
+                if (index > nHT)
+                {
+                    memcpy(&cFrame[nBuf - index - 2 * nHT], buf, index - nHT);
+                }
+            }
+            //printf("-----------------------index = %d \n", index);
+            //for (UINT i = 0; i < nBuf-10*nHT; i++)     // for ect
+            //{
+            //    printf("cFrame[%d]=", i);
+            //    printf("%X\t\n", cFrame[i]);
+            //}
+            //for (UINT i = nBuf - 3*nHT; i < nBuf-2*nHT; i++)     // for ect
+            //{
+            //    printf("cFrame[%d]=", i);
+            //    printf("%X\t\n", cFrame[i]);
+            //}
         }
         else
         {
-            for (UINT i = 0; i < nBuf; i++)     // for ect
-            {
-                printf("buf[%d]=", i);
-                printf("%X\t\n", buf[i]);
-            }
-            printf("Find no head of frame\n");
+            nohead++;
         }
+        //printf(".");
+
+        //else
+        //{
+        //    printf("------------------------------------------NO HEAD < 8\n");
+
+        //    for (UINT i = 0; i < nBuf; i++)     // for ect
+        //    {
+        //        printf("buf[%d]=", i);
+        //        printf("%X\t\n", buf[i]);
+        //    }
+        //    printf("------------------------------------------NO HEAD < 8\n");
+        //}
+        //printf("-----------------------------------------------------iMeas = %d \n", imeas);
         imeas++;
-        printf("-----------------------------------------------------iMeas = %d \n", imeas);
 
     }
 
 
-
-    if (0)
-    {
-        INT nCombByte = 0;
-        BYTE* addr = (BYTE*)&nCombByte;
-
-        // StartTime
-        //ETData->lStartTime = InBuffer[0]+InBuffer[1]*256+InBuffer[2]*65536+InBuffer[3]*16777216;
-
-        // EndTime
-        //ETData->lEndTime = InBuffer[nTotalMeas-4]+InBuffer[nTotalMeas-3]*256+InBuffer[nTotalMeas-2]*65536+InBuffer[nTotalMeas-1]*16777216;
-        //memcpy(&(ETData->lEndTime), buf[nTotalMeas - 4], 4 * sizeof(BYTE));
-        float ET_MEAS[nMeas];
-
-        const UINT s = 4;   // s stand for step
-        for (UINT i = 0; i < nBuf; i++)     // for ect
-        {   
-            printf("buf[%d]=", i);
-            printf("%X\t\t", buf[i]);
-            printf("cFrame[%d]=", i);
-            printf("%X\n", cFrame[i]);
-        }
+    printf("\nNumber of no head frame = %d \n", nohead);
+    printf("Number of head0         = %d \n", head0);
 
 
-    }
+
 	//结束连接
 	closesocket(ConnectSocket);
 	WSACleanup();
