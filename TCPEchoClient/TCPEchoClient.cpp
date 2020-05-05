@@ -2,6 +2,8 @@
 #include <stdio.h>
 #include <windows.h>
 #include <io.h>
+#include <WS2tcpip.h>
+
 // Need to link with Ws2_32.lib
 #pragma comment (lib, "Ws2_32.lib")
 
@@ -61,7 +63,8 @@ int main(int argc, char* argv[])
     // IP address, and port for the socket that is being bound.
     sockaddr_in addrServer;
     addrServer.sin_family = AF_INET;
-    addrServer.sin_addr.s_addr = inet_addr( "192.168.0.7" );
+    // addrServer.sin_addr.s_addr = inet_addr( "192.168.0.7" );
+    inet_pton(AF_INET, "192.168.0.7", &addrServer.sin_addr.s_addr);   //require #include <WS2tcpip.h>
     addrServer.sin_port = htons(4000);
 
 	//----------------------
