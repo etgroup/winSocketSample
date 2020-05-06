@@ -3,13 +3,13 @@
 #include <windows.h>
 #include <io.h>
 #include <WS2tcpip.h>
-
+#include <ctime>
 // Need to link with Ws2_32.lib
 #pragma comment (lib, "Ws2_32.lib")
 
-#define nBuf 536
+#define nBuf 64
 
-#define nMeas 66
+#define nMeas 14
 #define nHT 4
 
 int main(int argc, char* argv[])
@@ -69,10 +69,19 @@ int main(int argc, char* argv[])
     int imeas = 0;
     int recvCount = 0;
     int currentPosition = 0;
-
+    struct ETFrame {
+        UINT32 head;
+        FLOAT data1[nMeas];
+        FLOAT data2[nMeas];
+        UINT32 tail;
+    } ET, * ptET;
 
     printf("transfer begin:\n ");
-    while (imeas < 100) {
+
+    clock_t start, end;   //clock_t 是clock()的返回变量类型
+    start = clock();      //捕捉循环段开始的时间
+
+    while (imeas < 3000) {
         findhead = 0;
         count = nBuf;
         currentPosition = 0;
@@ -101,6 +110,9 @@ int main(int argc, char* argv[])
         //否则，根据当前帧头的位置再读入数据，以收取完整帧数据为目的；此时，再次判断index > nHT，如满足则说明除帧尾之外，还有有效数据需要读取并转储。
         //以此保证数据帧的完整。目前，基本上都是index==0的情况，由最后检查nohead和head0可知。
         if (findhead) {
+            memcpy(&(ET.head), &fhData, 4);
+            memcpy(&(ET.tail), &feData, 4);
+
             if (index == 0)
             {
                 memcpy(&cFrame[0], &buf[index+nHT], nBuf - 2*nHT);
@@ -130,31 +142,41 @@ int main(int argc, char* argv[])
         }
         printf(".");
 
-        memcpy(&dFrame[0], &cFrame[0], nMeas*4*2);
-        if (imeas % 10 == 0) {
-            printf("imeas =  %d\n", imeas);
-        }
-        if (imeas == 99) {
-            printf("-----------------------index = %d \n", index);
-            for (UINT i = 0; i < nMeas*2; i++)
-            {
-                printf("dFrame[%d]=\t", i);
-                printf("%X\n", dFrame[i]);
-            }
-            // 程序测试，用于检查原始数据是否正确
-            //for (UINT i = 0; i < nBuf; i++)     // for ect
-            //{
-            //    printf("cFrame[%d]=", i);
-            //    printf("%X\t", cFrame[i]);
-            //    printf("buf[%d]=", i);
-            //    printf("%X\t\n", buf[i]);
-            //}
-        }
+        //memcpy(&dFrame[0], &cFrame[0], nMeas*4);
+        //if (imeas % 10 == 0) {
+        //    printf("imeas =  %d\n", imeas);
+        //}
+        //if (imeas == 99) {
+        //    printf("-----------------------index = %d \n", index);
+        //    for (UINT i = 0; i < nMeas*2; i++)
+        //    {
+        //        printf("dFrame[%d]=\t", i);
+        //        printf("%f\n", dFrame[i]);
+        //    }
+        //         程序测试，用于检查原始数据是否正确
+        //    for (UINT i = 0; i < nBuf; i++)     // for ect
+        //    {
+        //        printf("cFrame[%d]=", i);
+        //        printf("%X\t", cFrame[i]);
+        //        printf("buf[%d]=", i);
+        //        printf("%2X\t\n", buf[i]);
+        //    }
+        //    memcpy(&(ET.data1[0]), &cFrame[0], nMeas * 4);
+        //    for (UINT i = 0; i < nMeas; i++)
+        //    {
+        //        printf("ET.data1[%d]=\t", i);
+        //        printf("%f\n", ET.data1[i]);
+        //    }        
+        //}
+
+        
+
         imeas++;
 
     }
 
-    
+    end = clock();   //捕捉循环段结束的时间
+    printf ( "Elasped time, %d\n", (end - start) / CLK_TCK);  //两端时间相减再除以常量
 
     printf("\nNumber of no head frame = %d \n", nohead);
     printf("Number of head0         = %d \n", head0);
