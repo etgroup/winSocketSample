@@ -11,34 +11,7 @@
 
 #define nMeas 66
 #define nHT 4
-char* find_aim_str(char* head, char* tail, char* src)
-{
-    char* temp;
 
-    int h_len = strlen(head);
-    int t_len = strlen(tail);
-
-    while (*src != '\0')
-    {
-        if (strncmp(src, head, h_len) == 0)
-        {
-            temp = src;
-            src = src + h_len;
-            while (*src != '\0')
-            {
-                if (strncmp(src, tail, t_len) == 0)
-                {
-                    *(src + t_len) = '\0';
-                    return temp;
-                }
-                src++;
-            }
-            return NULL;
-        }
-        src++;
-    }
-    return NULL;
-}
 int main(int argc, char* argv[])
 {
     //----------------------
@@ -78,8 +51,8 @@ int main(int argc, char* argv[])
     }
 
     char buf[nBuf] = {};
-    char fhData[nHT] = {'A','B','C','D'};
-    char feData[nHT] = {'W','X','Y','Z'}; 
+    char fhData[nHT] = {'D','C','B','A'};
+    char feData[nHT] = {'Z','Y','X','W'}; 
     int count;
     
     
@@ -87,7 +60,9 @@ int main(int argc, char* argv[])
     char* tail = feData;
     char cFrame[nBuf] = {};
     char* cDest = cFrame;
+
     BOOL findhead = 0;
+    UINT32 dFrame[2*nMeas] = {};
     int nohead = 0;
     int head0 = 0;
     int index;
@@ -97,7 +72,7 @@ int main(int argc, char* argv[])
 
 
     printf("transfer begin:\n ");
-    while (imeas < 1000) {
+    while (imeas < 100) {
         findhead = 0;
         count = nBuf;
         currentPosition = 0;
@@ -107,7 +82,7 @@ int main(int argc, char* argv[])
             currentPosition += recvCount;
         }
 
-        //count = recv(ConnectSocket, buf, nBuf, 0);
+        //寻找帧头（"ABCD"）
         index = 0;
         while (index <  nBuf)
         {
@@ -121,7 +96,10 @@ int main(int argc, char* argv[])
                 index++;
             }
         }
-
+        //如找到帧头，判断在何处找到帧头。
+        //如果在Index==0时即找到，则此帧完整，转储；
+        //否则，根据当前帧头的位置再读入数据，以收取完整帧数据为目的；此时，再次判断index > nHT，如满足则说明除帧尾之外，还有有效数据需要读取并转储。
+        //以此保证数据帧的完整。目前，基本上都是index==0的情况，由最后检查nohead和head0可知。
         if (findhead) {
             if (index == 0)
             {
@@ -130,7 +108,7 @@ int main(int argc, char* argv[])
             }
             else
             {   
-                memcpy(&cFrame[0], &buf[index+nHT], nBuf - index-2*nHT);
+                memcpy(&cFrame[0], &buf[index+nHT], nBuf - index-nHT);
                 // receive the remaining frame data
                 count = index;
                 currentPosition = 0;
@@ -142,43 +120,41 @@ int main(int argc, char* argv[])
                 //count = recv(ConnectSocket, buf, index,0);
                 if (index > nHT)
                 {
-                    memcpy(&cFrame[nBuf - index - 2 * nHT], buf, index - nHT);
+                    memcpy(&cFrame[nBuf - index - nHT], &buf[0], index - nHT);
                 }
             }
-            //printf("-----------------------index = %d \n", index);
-            //for (UINT i = 0; i < nBuf-10*nHT; i++)     // for ect
-            //{
-            //    printf("cFrame[%d]=", i);
-            //    printf("%X\t\n", cFrame[i]);
-            //}
-            //for (UINT i = nBuf - 3*nHT; i < nBuf-2*nHT; i++)     // for ect
-            //{
-            //    printf("cFrame[%d]=", i);
-            //    printf("%X\t\n", cFrame[i]);
-            //}
         }
         else
         {
             nohead++;
         }
-        //printf(".");
+        printf(".");
 
-        //else
-        //{
-        //    printf("------------------------------------------NO HEAD < 8\n");
-
-        //    for (UINT i = 0; i < nBuf; i++)     // for ect
-        //    {
-        //        printf("buf[%d]=", i);
-        //        printf("%X\t\n", buf[i]);
-        //    }
-        //    printf("------------------------------------------NO HEAD < 8\n");
-        //}
-        //printf("-----------------------------------------------------iMeas = %d \n", imeas);
+        memcpy(&dFrame[0], &cFrame[0], nMeas*4*2);
+        if (imeas % 10 == 0) {
+            printf("imeas =  %d\n", imeas);
+        }
+        if (imeas == 99) {
+            printf("-----------------------index = %d \n", index);
+            for (UINT i = 0; i < nMeas*2; i++)
+            {
+                printf("dFrame[%d]=\t", i);
+                printf("%X\n", dFrame[i]);
+            }
+            // 程序测试，用于检查原始数据是否正确
+            //for (UINT i = 0; i < nBuf; i++)     // for ect
+            //{
+            //    printf("cFrame[%d]=", i);
+            //    printf("%X\t", cFrame[i]);
+            //    printf("buf[%d]=", i);
+            //    printf("%X\t\n", buf[i]);
+            //}
+        }
         imeas++;
 
     }
 
+    
 
     printf("\nNumber of no head frame = %d \n", nohead);
     printf("Number of head0         = %d \n", head0);
