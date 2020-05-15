@@ -7,10 +7,19 @@
 // Need to link with Ws2_32.lib
 #pragma comment (lib, "Ws2_32.lib")
 
-#define nBuf 64
-
-#define nMeas 14
+#define nElectrode 	8		//The number of electrode
+#define nPlane		2
+#define nBoard		2		//The number of front-end board
+#define nMeas 		28		//The number of measurement in a frame
+#define nSendByte	232		// = nMeas * 4 * nPlane + 4*2 = (nMeas+1)*8 //for 2xADC
+                            // = (nMeas+2)*4				
 #define nHT 4
+
+
+
+#define bADC1 		1
+#define bADC2 		1
+
 
 int main(int argc, char* argv[])
 {
@@ -50,7 +59,7 @@ int main(int argc, char* argv[])
         return 1;
     }
 
-    char buf[nBuf] = {};
+    char buf[nSendByte] = {};
     char fhData[nHT] = {'D','C','B','A'};
     char feData[nHT] = {'Z','Y','X','W'}; 
     int count;
@@ -58,7 +67,7 @@ int main(int argc, char* argv[])
     
     char* head = fhData;
     char* tail = feData;
-    char cFrame[nBuf] = {};
+    char cFrame[nSendByte] = {};
     char* cDest = cFrame;
 
     BOOL findhead = 0;
@@ -69,6 +78,7 @@ int main(int argc, char* argv[])
     int imeas = 0;
     int recvCount = 0;
     int currentPosition = 0;
+    int barl = 0;
     struct ETFrame {
         UINT32 head;
         FLOAT data1[nMeas];
@@ -81,9 +91,9 @@ int main(int argc, char* argv[])
     clock_t start, end;   //clock_t 是clock()的返回变量类型
     start = clock();      //捕捉循环段开始的时间
 
-    while (imeas < 3000) {
+    while (imeas < 100) {
         findhead = 0;
-        count = nBuf;
+        count = nSendByte;
         currentPosition = 0;
         while (count > 0 && (recvCount = recv(ConnectSocket, buf + currentPosition, count, 0)) != SOCKET_ERROR)
         {
@@ -93,7 +103,7 @@ int main(int argc, char* argv[])
 
         //寻找帧头（"ABCD"）
         index = 0;
-        while (index <  nBuf)
+        while (index <  nSendByte)
         {
             if (memcmp(&buf[index], &fhData, nHT) == 0)
             {
@@ -109,18 +119,19 @@ int main(int argc, char* argv[])
         //如果在Index==0时即找到，则此帧完整，转储；
         //否则，根据当前帧头的位置再读入数据，以收取完整帧数据为目的；此时，再次判断index > nHT，如满足则说明除帧尾之外，还有有效数据需要读取并转储。
         //以此保证数据帧的完整。目前，基本上都是index==0的情况，由最后检查nohead和head0可知。
+
         if (findhead) {
             memcpy(&(ET.head), &fhData, 4);
             memcpy(&(ET.tail), &feData, 4);
 
             if (index == 0)
             {
-                memcpy(&cFrame[0], &buf[index+nHT], nBuf - 2*nHT);
+                memcpy(&cFrame[0], &buf[index+nHT], nSendByte - 2*nHT);
                 head0++;
             }
             else
             {   
-                memcpy(&cFrame[0], &buf[index+nHT], nBuf - index-nHT);
+                memcpy(&cFrame[0], &buf[index+nHT], nSendByte - index-nHT);
                 // receive the remaining frame data
                 count = index;
                 currentPosition = 0;
@@ -132,7 +143,7 @@ int main(int argc, char* argv[])
                 //count = recv(ConnectSocket, buf, index,0);
                 if (index > nHT)
                 {
-                    memcpy(&cFrame[nBuf - index - nHT], &buf[0], index - nHT);
+                    memcpy(&cFrame[nSendByte - index - nHT], &buf[0], index - nHT);
                 }
             }
         }
@@ -141,6 +152,8 @@ int main(int argc, char* argv[])
             nohead++;
         }
         printf(".");
+
+ 
 
         //memcpy(&dFrame[0], &cFrame[0], nMeas*4);
         //if (imeas % 10 == 0) {
@@ -154,7 +167,7 @@ int main(int argc, char* argv[])
         //        printf("%f\n", dFrame[i]);
         //    }
         //         程序测试，用于检查原始数据是否正确
-        //    for (UINT i = 0; i < nBuf; i++)     // for ect
+        //    for (UINT i = 0; i < nSendByte; i++)     // for ect
         //    {
         //        printf("cFrame[%d]=", i);
         //        printf("%X\t", cFrame[i]);
@@ -173,6 +186,30 @@ int main(int argc, char* argv[])
 
         imeas++;
 
+        if (bADC1) {
+            memcpy(&(ET.data1[0]), &cFrame[0], nMeas * 4);
+        }
+
+        if (bADC2) {
+            memcpy(&(ET.data2[0]), &cFrame[nMeas * 4], nMeas * 4);
+        }
+        Sleep(100);
+        system("cls");
+        printf("\n\n\n\n\n#\tOTR\t DATA\t \n");
+        for (UINT i = 0; i < nMeas; i++)
+        {
+                printf("%d\t%3.0f\t", i, ET.data1[i]);
+                printf("%f\t", ET.data2[i]);
+                barl = ET.data2[i]/150;
+                while (barl > 0) {
+
+                    printf("%s", "■");
+                    barl--;
+                }
+            printf("\n");
+        }
+
+
     }
 
     end = clock();   //捕捉循环段结束的时间
@@ -183,9 +220,9 @@ int main(int argc, char* argv[])
 
 
 
+
 	//结束连接
 	closesocket(ConnectSocket);
 	WSACleanup();
 	return 0;
-}
-
+} 
