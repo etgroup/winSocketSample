@@ -1,16 +1,32 @@
-#include <winsock2.h>
+ï»¿#include <winsock2.h>
 #include <stdio.h>
 #include <windows.h>
 #include <io.h>
+#include <WS2tcpip.h>
+#include <ctime>
 // Need to link with Ws2_32.lib
 #pragma comment (lib, "Ws2_32.lib")
+
+#define nElectrode 	8		//The number of electrode
+#define nPlane		2
+#define nBoard		2		//The number of front-end board
+#define nMeas 		28		//The number of measurement in a frame
+#define nSendByte	232		// = nMeas * 4 * nPlane + 4*2 = (nMeas+1)*8 //for 2xADC
+                            // = (nMeas+2)*4				
+#define nHT 4
+
+
+
+#define bADC1 		1
+#define bADC2 		1
+
 
 int main(int argc, char* argv[])
 {
     //----------------------
     // Initialize Winsock.
     WSADATA wsaData;
-    int iResult = WSAStartup(MAKEWORD(2, 0), &wsaData);
+    int iResult = WSAStartup(MAKEWORD(2, 2), &wsaData);
     if (iResult != NO_ERROR) {
         wprintf(L"WSAStartup failed with error: %ld\n", iResult);
         return 1;
@@ -29,14 +45,9 @@ int main(int argc, char* argv[])
     // IP address, and port for the socket that is being bound.
     sockaddr_in addrServer;
     addrServer.sin_family = AF_INET;
-<<<<<<< Updated upstream
-    addrServer.sin_addr.s_addr = inet_addr( "127.0.0.1" );
-    addrServer.sin_port = htons(20131);
-=======
     // addrServer.sin_addr.s_addr = inet_addr( "192.168.0.7" );
-    inet_pton(AF_INET, "192.168.1.103", &addrServer.sin_addr.s_addr);   //require #include <WS2tcpip.h>
-    addrServer.sin_port = htons(23);
->>>>>>> Stashed changes
+    inet_pton(AF_INET, "192.168.0.7", &addrServer.sin_addr.s_addr);   //require #include <WS2tcpip.h>
+    addrServer.sin_port = htons(4000);
 
 	//----------------------
     // Connect to server.
@@ -48,29 +59,6 @@ int main(int argc, char* argv[])
         return 1;
     }
 
-<<<<<<< Updated upstream
-	char buf[1024+1];
-	//ÒÔÒ»¸öÎÞÏÞÑ­»·µÄ·½Ê½£¬²»Í£µØ½ÓÊÕÊäÈë£¬·¢ËÍµ½server
-	while(1)
-	{
-		int count = _read (0, buf, 1024);//´Ó±ê×¼ÊäÈë¶ÁÈë
-		if(count<=0)break;
-		int sendCount,currentPosition=0;
-		while( count>0 && (sendCount=send(ConnectSocket ,buf+currentPosition,count,0))!=SOCKET_ERROR)
-		{
-			count-=sendCount;
-			currentPosition+=sendCount;
-		}
-		if(sendCount==SOCKET_ERROR)break;
-		
-		count =recv(ConnectSocket ,buf,1024,0);
-		if(count==0)break;//±»¶Ô·½¹Ø±Õ
-		if(count==SOCKET_ERROR)break;//´íÎócount<0
-		buf[count]='\0';
-		printf("%s",buf);
-	}
-	//½áÊøÁ¬½Ó
-=======
     char buf[nSendByte] = {};
     char fhData[nHT] = {'D','C','B','A'};
     char feData[nHT] = {'Z','Y','X','W'}; 
@@ -204,19 +192,17 @@ int main(int argc, char* argv[])
 	    
         if (bADC1) {
             memcpy(&(ET.data1[0]), &cFrame[0], nMeas * 4);
-			memcpy(&(ETData->fData[0]), &cFrame[0], nMeas * 4);
         }
 
         if (bADC2) {
             memcpy(&(ET.data2[0]), &cFrame[nMeas * 4], nMeas * 4);
-			memcpy(&(ETData->fData[nMeas * 4]), &cFrame[nMeas * 4], nMeas * 4);
         }
         Sleep(100);
         system("cls");
         printf("\n\n\n\n\n#\tOTR\t DATA\t \n");
         for (UINT i = 0; i < nMeas; i++)
         {
-                printf("%d\t%f\t", i, ET.data1[i]);
+                printf("%d\t%3.0f\t", i, ET.data1[i]);
                 printf("%f\t", ET.data2[i]);
                 barl = ET.data2[i]/150;
                 while (barl > 0) {
@@ -240,9 +226,7 @@ int main(int argc, char* argv[])
 
 
 	//ç»“æŸè¿žæŽ¥
->>>>>>> Stashed changes
 	closesocket(ConnectSocket);
 	WSACleanup();
 	return 0;
-}
-
+} 
