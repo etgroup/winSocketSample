@@ -184,6 +184,12 @@ int main(int argc, char* argv[])
         
 
         imeas++;
+
+ 
+	// 以上，是在字节流动的层将有效信息（帧头、帧尾之间的有效数据字节）提取出来，存到cFrame数组中。
+	// 以下，则是将cFrame数组转换为Struct结构体中的数据float ET.data1和ET.data2；此处Struct对应下位机的Struct结构体。
+	// 进一步，可以考虑将cFrame这一步省掉。    
+
 #ifndef bSingleADC
         memcpy(&(ET.data1[0]), &cFrame[0], nMeas * 4);
         memcpy(&(ET.data2[0]), &cFrame[nMeas * 4], nMeas * 4);
@@ -198,6 +204,7 @@ int main(int argc, char* argv[])
         }
 #endif // bSingleADC
 
+	    
         Sleep(100);
         system("cls");
         printf("\n\n\n\n\n#\t DATA\t \n");
