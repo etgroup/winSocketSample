@@ -8,19 +8,16 @@
 #pragma comment (lib, "Ws2_32.lib")
 
 #define nElectrode 	8		//The number of electrode
-#define nPlane		2
+#define nPlane		1
 #define nBoard		2		//The number of front-end board
 #define nMeas 		28		//The number of measurement in a frame
-#define nSendByte	232		// = nMeas * 4 * nPlane + 4*2 = (nMeas+1)*8 //for 2xADC
-                            // = (nMeas+2)*4				
-#define nHT 4
-
-
-
-#define bADC1 		1
+#define nSendByte	120		// = nMeas * 4 * nPlane + 4*2 = (nMeas+1)*8 //for 2xADC
+                            // = (nMeas+2)*4							//for 1xADC
+#define bSingleADC
+#define bADC1 		0
 #define bADC2 		1
 
-
+#define nHT 4
 int main(int argc, char* argv[])
 {
     //----------------------
@@ -82,7 +79,9 @@ int main(int argc, char* argv[])
     struct ETFrame {
         UINT32 head;
         FLOAT data1[nMeas];
+#ifdef bSingleADC
         FLOAT data2[nMeas];
+#endif // bSingleADC
         UINT32 tail;
     } ET, * ptET;
 
@@ -185,24 +184,28 @@ int main(int argc, char* argv[])
         
 
         imeas++;
-
+#ifndef bSingleADC
+        memcpy(&(ET.data1[0]), &cFrame[0], nMeas * 4);
+        memcpy(&(ET.data2[0]), &cFrame[nMeas * 4], nMeas * 4);
+#endif // !bSingleADC
+#ifdef bSingleADC
+        //bADC1+bADC2=1
         if (bADC1) {
             memcpy(&(ET.data1[0]), &cFrame[0], nMeas * 4);
         }
-
         if (bADC2) {
-            memcpy(&(ET.data2[0]), &cFrame[nMeas * 4], nMeas * 4);
+            memcpy(&(ET.data1[0]), &cFrame[0], nMeas * 4);
         }
+#endif // bSingleADC
+
         Sleep(100);
         system("cls");
-        printf("\n\n\n\n\n#\tOTR\t DATA\t \n");
+        printf("\n\n\n\n\n#\t DATA\t \n");
         for (UINT i = 0; i < nMeas; i++)
         {
-                printf("%d\t%3.0f\t", i, ET.data1[i]);
-                printf("%f\t", ET.data2[i]);
-                barl = ET.data2[i]/150;
+                printf("%d\t%3.3f\t", i, ET.data1[i]);
+                barl = ET.data1[i]/15;
                 while (barl > 0) {
-
                     printf("%s", "■");
                     barl--;
                 }
