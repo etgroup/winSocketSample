@@ -87,13 +87,19 @@ int main(int argc, char* argv[])
         UINT32 tail;
     } ET, * ptET;
 
-    printf("Speed Test:\n ");
-    printf("Number of frame: %d\n", nTimes);
+    system("cls");
+    printf("**************************************************************************************\n ");
+    printf("ECT DAQ Speed Test\n ");
+    printf("Number of Frame: %d\n", nTimes);
+    printf("**************************************************************************************\n ");
 
     clock_t start, end;   //clock_t 是clock()的返回变量类型
     start = clock();      //捕捉循环段开始的时间
     imeas = nTimes;
 
+
+
+    printf("\nTest Begin!\n");
     while (imeas) {
         findhead = 0;
         count = nSendByte;
@@ -227,12 +233,17 @@ int main(int argc, char* argv[])
     }
 
     end = clock();   //捕捉循环段结束的时间
+    FLOAT SPD = (head0) / ((end - start) / CLK_TCK);
+    printf("\nTest End!\n");
+    printf("**************************************************************************************\n");
+    printf("Number of Received Frames \t=  %d\n", head0);
+    printf("Elasped time              \t=  %d s\n", (end - start) / CLK_TCK);  //两端时间相减再除以常量
+    printf("The DAQ Speed             \t=  %.3f frames/s\n", SPD);
+    printf("**************************************************************************************\n ");
 
 
-    printf ( "\nElasped time, %d\n", (end - start) / CLK_TCK);  //两端时间相减再除以常量
-
-    printf("\nNumber of no head frame = %d \n", nohead);
-    printf("Number of head0         = %d \n", head0);
+    //printf("\nNumber of no head frame = %d \n", nohead);
+    //printf("Number of head0         = %d \n", head0);
 
 
 
