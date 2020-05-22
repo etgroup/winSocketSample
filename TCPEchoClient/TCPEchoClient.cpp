@@ -17,7 +17,9 @@
 #define bADC1 		0
 #define bADC2 		1
 
-#define nHT 4
+
+#define nTimes      3000
+#define nHT 2
 int main(int argc, char* argv[])
 {
     //----------------------
@@ -57,8 +59,8 @@ int main(int argc, char* argv[])
     }
 
     char buf[nSendByte] = {};
-    char fhData[nHT] = {'D','C','B','A'};
-    char feData[nHT] = {'Z','Y','X','W'}; 
+    char fhData[nHT] = {'B','A'};
+    char feData[nHT] = {'X','W'}; 
     int count;
     
     
@@ -78,19 +80,21 @@ int main(int argc, char* argv[])
     int barl = 0;
     struct ETFrame {
         UINT32 head;
-        FLOAT data1[nMeas];
+        UINT16 data1[nMeas];
 #ifdef bSingleADC
-        FLOAT data2[nMeas];
+        UINT16 data2[nMeas];
 #endif // bSingleADC
         UINT32 tail;
     } ET, * ptET;
 
-    printf("transfer begin:\n ");
+    printf("Speed Test:\n ");
+    printf("Number of frame: %d\n", nTimes);
 
     clock_t start, end;   //clock_t 是clock()的返回变量类型
     start = clock();      //捕捉循环段开始的时间
+    imeas = nTimes;
 
-    while (imeas < 100) {
+    while (imeas) {
         findhead = 0;
         count = nSendByte;
         currentPosition = 0;
@@ -120,8 +124,8 @@ int main(int argc, char* argv[])
         //以此保证数据帧的完整。目前，基本上都是index==0的情况，由最后检查nohead和head0可知。
 
         if (findhead) {
-            memcpy(&(ET.head), &fhData, 4);
-            memcpy(&(ET.tail), &feData, 4);
+            memcpy(&(ET.head), &fhData, nHT);
+            memcpy(&(ET.tail), &feData, nHT);
 
             if (index == 0)
             {
@@ -183,7 +187,7 @@ int main(int argc, char* argv[])
 
         
 
-        imeas++;
+        imeas--;
 
  
 	// 以上，是在字节流动的层将有效信息（帧头、帧尾之间的有效数据字节）提取出来，存到cFrame数组中。
@@ -191,39 +195,41 @@ int main(int argc, char* argv[])
 	// 进一步，可以考虑将cFrame这一步省掉。    
 
 #ifndef bSingleADC
-        memcpy(&(ET.data1[0]), &cFrame[0], nMeas * 4);
-        memcpy(&(ET.data2[0]), &cFrame[nMeas * 4], nMeas * 4);
+        memcpy(&(ET.data1[0]), &cFrame[0], nMeas * 2);
+        memcpy(&(ET.data2[0]), &cFrame[nMeas * 4], nMeas * 2);
 #endif // !bSingleADC
 #ifdef bSingleADC
         //bADC1+bADC2=1
         if (bADC1) {
-            memcpy(&(ET.data1[0]), &cFrame[0], nMeas * 4);
+            memcpy(&(ET.data1[0]), &cFrame[0], nMeas * 2);
         }
         if (bADC2) {
-            memcpy(&(ET.data1[0]), &cFrame[0], nMeas * 4);
+            memcpy(&(ET.data1[0]), &cFrame[0], nMeas * 2);
         }
 #endif // bSingleADC
 
 	    
-        Sleep(100);
-        system("cls");
-        printf("\n\n\n\n\n#\t DATA\t \n");
-        for (UINT i = 0; i < nMeas; i++)
-        {
-                printf("%d\t%3.3f\t", i, ET.data1[i]);
-                barl = ET.data1[i]/15;
-                while (barl > 0) {
-                    printf("%s", "■");
-                    barl--;
-                }
-            printf("\n");
-        }
+        //Sleep(100);
+        //system("cls");
+        //printf("\n\n\n\n\n#\t DATA\t \n");
+        //for (UINT i = 0; i < nMeas; i++)
+        //{
+        //        printf("%d\t%3.3f\t", i, ET.data1[i]);
+        //        barl = ET.data1[i]/15;
+        //        while (barl > 0) {
+        //            printf("%s", "■");
+        //            barl--;
+        //        }
+        //    printf("\n");
+        //}
 
 
     }
 
     end = clock();   //捕捉循环段结束的时间
-    printf ( "Elasped time, %d\n", (end - start) / CLK_TCK);  //两端时间相减再除以常量
+
+
+    printf ( "\nElasped time, %d\n", (end - start) / CLK_TCK);  //两端时间相减再除以常量
 
     printf("\nNumber of no head frame = %d \n", nohead);
     printf("Number of head0         = %d \n", head0);
