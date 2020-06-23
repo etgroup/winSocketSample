@@ -10,10 +10,9 @@
 #define nElectrode 	4		//The number of electrode
 #define nPlane		1
 #define nBoard		2		//The number of front-end board
-#define nMeas 		256		//The number of measurement in a frame
-#define nBytes      4
-#define nSendByte	2056    //(nMeas * nPlane ) * nBytes + 2 * nHT		
-                            // = (nMeas+2)*4							//for 1xADC
+#define nMeas 		64		//The number of measurement in a frame
+#define nSendByte	520    //(nMeas * nPlane ) * nBytes + 2 * nHT		
+
 //#define bSingleADC
 #define bADC1 		1
 #define bADC2 		1
@@ -60,8 +59,8 @@ int main(int argc, char* argv[])
     }
 
     char buf[nSendByte] = {};
-    char fhData[nHT] = { 'D','C','B','A'};
-    char feData[nHT] = { 'Z','Y','X','W'};
+    char fhData[nHT] = {'D','C','B','A'};
+    char feData[nHT] = {'Z','Y','X','W'};
     int count;
     
     
@@ -79,11 +78,12 @@ int main(int argc, char* argv[])
     int recvCount = 0;
     int currentPosition = 0;
     int barl = 0;
+
     struct ETFrame {
         UINT32 head;
-        UINT16 data1[nMeas];
-#ifdef bSingleADC
-        UINT16 data2[nMeas];
+        FLOAT data1[nMeas];
+#ifndef bSingleADC
+        FLOAT data2[nMeas];
 #endif // bSingleADC
         UINT32 tail;
     } ET, * ptET;
@@ -99,18 +99,18 @@ int main(int argc, char* argv[])
     imeas = nTimes;
 
 
-
     printf("\nTest Begin!\n");
     while (imeas) {
         findhead = 0;
         count = nSendByte;
         currentPosition = 0;
+
+
         while (count > 0 && (recvCount = recv(ConnectSocket, buf + currentPosition, count, 0)) != SOCKET_ERROR)
         {
             count -= recvCount;
             currentPosition += recvCount;
         }
-
         //寻找帧头（"ABCD"）
         index = 0;
         while (index <  nSendByte)
