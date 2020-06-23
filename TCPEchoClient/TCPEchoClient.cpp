@@ -10,8 +10,8 @@
 #define nElectrode 	4		//The number of electrode
 #define nPlane		1
 #define nBoard		2		//The number of front-end board
-#define nMeas 		64		//The number of measurement in a frame
-#define nSendByte	520    //(nMeas * nPlane ) * nBytes + 2 * nHT		
+#define nMeas 		128		//The number of measurement in a frame
+#define nSendByte	1032    //(nMeas * nPlane ) * nBytes + 2 * nHT		
 
 //#define bSingleADC
 #define bADC1 		1
