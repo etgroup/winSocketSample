@@ -7,19 +7,20 @@
 // Need to link with Ws2_32.lib
 #pragma comment (lib, "Ws2_32.lib")
 
-#define nElectrode 	8		//The number of electrode
+#define nElectrode 	4		//The number of electrode
 #define nPlane		1
 #define nBoard		2		//The number of front-end board
-#define nMeas 		28		//The number of measurement in a frame
-#define nSendByte	120		// = nMeas * 4 * nPlane + 4*2 = (nMeas+1)*8 //for 2xADC
+#define nMeas 		256		//The number of measurement in a frame
+#define nBytes      4
+#define nSendByte	2056    //(nMeas * nPlane ) * nBytes + 2 * nHT		
                             // = (nMeas+2)*4							//for 1xADC
-#define bSingleADC
-#define bADC1 		0
+//#define bSingleADC
+#define bADC1 		1
 #define bADC2 		1
 
 
 #define nTimes      3000
-#define nHT 2
+#define nHT 4
 int main(int argc, char* argv[])
 {
     //----------------------
@@ -59,8 +60,8 @@ int main(int argc, char* argv[])
     }
 
     char buf[nSendByte] = {};
-    char fhData[nHT] = {'B','A'};
-    char feData[nHT] = {'X','W'}; 
+    char fhData[nHT] = { 'D','C','B','A'};
+    char feData[nHT] = { 'Z','Y','X','W'};
     int count;
     
     
