@@ -202,8 +202,8 @@ int main(int argc, char* argv[])
 	// 进一步，可以考虑将cFrame这一步省掉。    
 
 #ifndef bSingleADC
-        memcpy(&(ET.data1[0]), &cFrame[0], nMeas * 2);
-        memcpy(&(ET.data2[0]), &cFrame[nMeas * 4], nMeas * 2);
+        memcpy(&(ET.data1[0]), &cFrame[0], nMeas * 4);
+        memcpy(&(ET.data2[0]), &cFrame[nMeas * 4], nMeas * 4);
 #endif // !bSingleADC
 #ifdef bSingleADC
         //bADC1+bADC2=1
